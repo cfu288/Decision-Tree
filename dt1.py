@@ -51,34 +51,12 @@ def growTree(examples, target_attribute, attributes):
     elif len(attributes) == 0: return  Node("1") if numberOfZeros < numberOfOnes else Node("0")
     else:
         HS = calE(numOfOnes,numOfZeros)
-        # assume left branch is when att = 0, right when attr = 1
+        # assume left branch is when att = 0
         taLeftOnes = examples[("Class" == 1) & (target_attribute == 0)].count() 
         taLeftZeros = examples[("Class" == 0) & (target_attribute == 0)].count()
         taRightOnes = examples[("Class" == 1) & (target_attribute == 1)].count() 
         taRightZeros = examples[("Class" == 0) & (target_attribute == 1)].count()
     return 
-
-def getBestAttr(examples, attributes):
-    numOfOnes = examples["Class"].sum()
-    numOfZeros = examples["Class"].count() - numOfOnes
-    HS = calE(numOfOnes,numOfZeros) # total of current set, unrealated to target attr
-    maxDict={}
-    for attr in attributes:
-        taLeftOnes = examples["Class"].loc[(examples["Class"] == 1) & (examples[attr] == 0)].count() 
-        taLeftZeros = examples["Class"].loc[(examples["Class"] == 0) & (examples[attr] == 0)].count()
-        taRightOnes = examples["Class"].loc[(examples["Class"] == 1) & (examples[attr] == 1)].count() 
-        taRightZeros = examples["Class"].loc[(examples["Class"] == 0) & (examples[attr] == 1)].count()
-        HSvLeft = calE(taLeftOnes,taLeftZeros) 
-        HSvRight = calE(taRightOnes, taRightZeros)
-        attr_gain = calGain(HS,HSvLeft,HSvRight, taLeftOnes+taLeftZeros, taRightOnes+taRightZeros)
-        # print(taLeftOnes)
-        maxDict[attr] = attr_gain
-        # print("{} {}".format(attr,attr_gain))
-        # print("HS:{} left:{} right:{}".format(HS,HSvLeft,HSvRight))
-        # print("L0:{} L1:{}".format(taLeftZeros,taLeftOnes))
-        # print("R0:{} R1:{}".format(taRightZeros,taRightOnes))
-    print(maxDict)
-    return max(maxDict, key=maxDict.get)
 
 if __name__ == "__main__":
     args = getArgs()
@@ -87,11 +65,8 @@ if __name__ == "__main__":
     test_df = pd.read_csv(args.test)
     attr_list = getAtt(train_df)
     
-    res = getBestAttr(train_df,attr_list)
-    print("max:{}".format(res)) 
-    
-    # print(train_df.to_string)
-    # res_dict = {}
+    #print(train_df.to_string)
+    res_dict = {}
     # for attr in attr_list:
     #     c1 =  train_df[attr].sum()
     #     c2 = train_df[attr].count() - train_df[attr].sum()
@@ -102,7 +77,7 @@ if __name__ == "__main__":
     # GET ROWS WHERE CLASS IS 1
     #print(train_df.loc[train_df["Class"] == 1])
     # GET COUNT OF ROWS WHERE CLASS = 1
-    # print("SIZE = {}".format(train_df["Class"].loc[train_df["Class"] == 1].count()))
+    print("SIZE = {}".format(train_df["Class"].loc[train_df["Class"] == 1].count()))
     # testTree = Node(attr_list[0]) #XB
     # curNode = testTree 
     # curNode.setLeft(Node(attr_list[1])) #XC
