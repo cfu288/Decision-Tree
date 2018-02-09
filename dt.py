@@ -15,11 +15,20 @@ def getArgs():
 #Calc Entropy
 def calE(c1,c2):
     c3 = c1+c2
-    res = -(c1/c3*np.log2(c1/c3)) - (c2/c3*np.log2(c2/c3))
+    # print("c1:{} c2:{} c3:{}".format(c1,c2,c3))
+    res = 0
+    if (c1 == 0) and (c2 == 0):
+        res = 0
+    elif (c1 == 0):
+        res = 0 - (c2/c3*np.log2(c2/c3))
+    elif (c2 == 0):
+        res = -(c1/c3*np.log2(c1/c3)) - 0
+    else:
+        res = -(c1/c3*np.log2(c1/c3)) - (c2/c3*np.log2(c2/c3))
     return res
 
 def calGain(Es, Ez, Eo , bo, bt):
-    return Es - (bo/(bo+bt)*Ez) - (bt/(bo+bt)*Eo)
+    return Es - ((bo/(bo+bt))*Ez) - ((bt/(bo+bt))*Eo)
 
 def getAtt(df):
     l = list(df.columns.values)
@@ -43,41 +52,67 @@ def printTree(root, level=0):
     if root.getRight() != None:
         printTree(root.getRight(),level+1)
 
-def growTree(examples, target_attribute, attributes):
+def growTree(examples, attributes):
+    root = Node()
     numOfOnes = examples["Class"].sum()
     numOfZeros = examples["Class"].count() - numOfOnes
-    if numOfZeros == 0: return Node("1")
-    elif numOfOnes == 0: return Node("0")
-    elif len(attributes) == 0: return  Node("1") if numberOfZeros < numberOfOnes else Node("0")
+    if numOfZeros == 0:
+        root.setName("1")
+        return root
+    elif numOfOnes == 0:
+        root.setName("0")
+        return root
+    elif len(attributes) == 0: 
+        root.setName("1") if numOfZeros < numOfOnes else root.setName("0")
+        return root
     else:
-        HS = calE(numOfOnes,numOfZeros)
-        # assume left branch is when att = 0, right when attr = 1
-        taLeftOnes = examples[("Class" == 1) & (target_attribute == 0)].count() 
-        taLeftZeros = examples[("Class" == 0) & (target_attribute == 0)].count()
-        taRightOnes = examples[("Class" == 1) & (target_attribute == 1)].count() 
-        taRightZeros = examples[("Class" == 0) & (target_attribute == 1)].count()
-    return 
+        best_attr = getBestAttr(examples, attributes)
+        root.setName(best_attr)
+        new_attr_list = attributes[:] # new copy of list for recursion
+        new_attr_list.remove(best_attr)
+
+        left_examples_subset = examples.loc[examples[best_attr] == 0]
+        left_examples_count = examples["Class"].loc[examples[best_attr] == 0].count()
+        if left_examples_count == 0:
+            leaf = Node()
+            leaf.setName("1") if numOfZeros < numOfOnes else leaf.setName("0")
+            root.setLeft(leaf) 
+        else:
+            # recurse on left
+            root.setLeft(growTree(left_examples_subset, new_attr_list))
+
+        right_examples_subset = examples.loc[examples[best_attr] == 1]
+        right_examples_count = examples["Class"].loc[examples[best_attr] == 1].count()
+        if right_examples_count == 0:
+            leaf = Node()
+            leaf.setName("1") if numOfZeros < numOfOnes else leaf.setName("0")
+            root.setRight(leaf) 
+        else: 
+            # recurse on right
+            root.setRight(growTree(right_examples_subset, new_attr_list))
+    
+    return root
 
 def getBestAttr(examples, attributes):
     numOfOnes = examples["Class"].sum()
     numOfZeros = examples["Class"].count() - numOfOnes
     HS = calE(numOfOnes,numOfZeros) # total of current set, unrealated to target attr
     maxDict={}
+    maxList=[]
+    nameEquivList=[]
     for attr in attributes:
-        taLeftOnes = examples["Class"].loc[(examples["Class"] == 1) & (examples[attr] == 0)].count() 
         taLeftZeros = examples["Class"].loc[(examples["Class"] == 0) & (examples[attr] == 0)].count()
-        taRightOnes = examples["Class"].loc[(examples["Class"] == 1) & (examples[attr] == 1)].count() 
+        taLeftOnes = examples["Class"].loc[(examples["Class"] == 1) & (examples[attr] == 0)].count() 
         taRightZeros = examples["Class"].loc[(examples["Class"] == 0) & (examples[attr] == 1)].count()
+        taRightOnes = examples["Class"].loc[(examples["Class"] == 1) & (examples[attr] == 1)].count() 
         HSvLeft = calE(taLeftOnes,taLeftZeros) 
         HSvRight = calE(taRightOnes, taRightZeros)
         attr_gain = calGain(HS,HSvLeft,HSvRight, taLeftOnes+taLeftZeros, taRightOnes+taRightZeros)
-        # print(taLeftOnes)
         maxDict[attr] = attr_gain
-        # print("{} {}".format(attr,attr_gain))
-        # print("HS:{} left:{} right:{}".format(HS,HSvLeft,HSvRight))
-        # print("L0:{} L1:{}".format(taLeftZeros,taLeftOnes))
-        # print("R0:{} R1:{}".format(taRightZeros,taRightOnes))
-    print(maxDict)
+        maxList.append(attr_gain)
+        nameEquivList.append(attr)
+    # print(maxDict)  
+    #return nameEquivList[maxList.index(max(maxList) )]
     return max(maxDict, key=maxDict.get)
 
 if __name__ == "__main__":
@@ -86,9 +121,32 @@ if __name__ == "__main__":
     val_df = pd.read_csv(args.validation)
     test_df = pd.read_csv(args.test)
     attr_list = getAtt(train_df)
+
+    treeRoot = growTree(train_df, attr_list)
+    printTree(treeRoot)
+   
     
-    res = getBestAttr(train_df,attr_list)
-    print("max:{}".format(res)) 
+    #res = getBestAttr(train_df,attr_list)
+    #print("max:{}".format(res)) 
+    
+    #examples = train_df
+    #best_attr = getBestAttr(examples, attr_list)
+    #print(best_attr)
+    #left_examples_subset = examples.loc[examples[best_attr] == 0]
+    
+    #newlist = attr_list[:]
+    #newlist.remove(best_attr)
+    #print(attr_list)
+    #print(newlist)
+    
+    #print(left_examples_subset)
+    #best_attr1 = getBestAttr(left_examples_subset, newlist)
+    
+    # print(left_examples_subset)
+    # sub1 = examples.loc[examples[attr_list[0]] == 0]
+    # print(sub1)
+    # sub2 = sub1.loc[sub1[attr_list[1]] == 0]
+    # print(sub2)
     
     # print(train_df.to_string)
     # res_dict = {}
