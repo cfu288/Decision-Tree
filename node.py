@@ -27,3 +27,10 @@ class Node(object):
 
     def setName(self, name):
         self.nodeName = name
+    
+    def setParent(self, parent):
+        self.parent = parent
+
+    def getParent(self):
+        return self.parent
+

@@ -48,7 +48,6 @@ def printTree(root, level=0):
     if root.getLeft() == None and root.getRight() == None:
         leaf = 1
         print(root.getName(),end="")
-
     if leaf == 0:
         print("\n{}{} = 0 : ".format(curLevel,root.getName()),end="")
     if root.getLeft() != None:
@@ -82,6 +81,7 @@ def growTree(examples, attributes):
         left_examples_count = examples["Class"].loc[examples[best_attr] == 0].count()
         if left_examples_count == 0:
             leaf = Node()
+            leaf.setParent(root)
             leaf.setName("1") if numOfZeros < numOfOnes else leaf.setName("0")
             root.setLeft(leaf) 
         else:
@@ -92,6 +92,7 @@ def growTree(examples, attributes):
         right_examples_count = examples["Class"].loc[examples[best_attr] == 1].count()
         if right_examples_count == 0:
             leaf = Node()
+            leaf.setParent(root)
             leaf.setName("1") if numOfZeros < numOfOnes else leaf.setName("0")
             root.setRight(leaf) 
         else: 
@@ -151,10 +152,6 @@ def testTreeHelper(treeRoot, row):
             return testTreeHelper(treeRoot.getRight(), row)
         else:
             print("ERR, path does not exist")
-
-    
-#
-            
 
 if __name__ == "__main__":
     args = getArgs()
