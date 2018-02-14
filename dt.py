@@ -13,9 +13,8 @@ def getArgs():
     return p.parse_args()
 
 #Calc Entropy
-def calE(c1,c2):
+def calE(c1,c2): #c1 is no 1's, c2 is no 0's
     c3 = c1+c2
-    # print("c1:{} c2:{} c3:{}".format(c1,c2,c3))
     res = 0
     if (c1 == 0) and (c2 == 0):
         res = 0
@@ -27,8 +26,16 @@ def calE(c1,c2):
         res = -(c1/c3*np.log2(c1/c3)) - (c2/c3*np.log2(c2/c3))
     return res
 
-def calGain(Es, Ez, Eo , bo, bt):
-    return Es - ((bo/(bo+bt))*Ez) - ((bt/(bo+bt))*Eo)
+def calGain(Es, Ez, Eo , bz, bo):
+    return Es - ((bz/(bz+bo))*Ez) - ((bo/(bo+bz))*Eo)
+
+def calVarImp(c1,c2): #c1 is no 1's, c2 is no 0's
+    res = 0
+    if (c1 == 0) or (c2 == 0):
+        res = 0
+    else:
+        res = c1/(c1+c2) * c2/(c1+c2)        
+    return res
 
 def getAtt(df):
     l = list(df.columns.values)
@@ -112,8 +119,42 @@ def getBestAttr(examples, attributes):
         maxList.append(attr_gain)
         nameEquivList.append(attr)
     # print(maxDict)  
-    #return nameEquivList[maxList.index(max(maxList) )]
-    return max(maxDict, key=maxDict.get)
+    return nameEquivList[maxList.index(max(maxList) )]
+    #return max(maxDict, key=maxDict.get)
+
+def testTree(treeRoot, testData):
+    currentRows = 0
+    numberCorrect = 0
+    for row in testData.itertuples():
+        currentRows += 1
+        # recursively check if test row matches tree path
+        numberCorrect += testTreeHelper(treeRoot, row)
+    return numberCorrect/currentRows
+
+def testTreeHelper(treeRoot, row):
+    if treeRoot == None:
+        print("ERR, none node when testing")
+        return
+    if (treeRoot.getName() == "0"):
+        if(row.Class == 0): return 1
+        else: return 0
+    elif (treeRoot.getName() == "1"):
+        if(row.Class == 1): return 1
+        else: return 0
+    else:
+        # get the node in tree and check path
+        currentNode = treeRoot.getName()
+        path = getattr(row,currentNode)
+        if path == 0:
+            return testTreeHelper(treeRoot.getLeft(), row)
+        elif path == 1:
+            return testTreeHelper(treeRoot.getRight(), row)
+        else:
+            print("ERR, path does not exist")
+
+    
+#
+            
 
 if __name__ == "__main__":
     args = getArgs()
@@ -123,8 +164,11 @@ if __name__ == "__main__":
     attr_list = getAtt(train_df)
 
     treeRoot = growTree(train_df, attr_list)
-    printTree(treeRoot)
-   
+    #printTree(treeRoot)
+    res = testTree(treeRoot, test_df)
+    #for row in test_df.itertuples():
+    #    print(row.Class)
+    print("Accuracy is {:.3f}%".format((res)*100))
     
     #res = getBestAttr(train_df,attr_list)
     #print("max:{}".format(res)) 
