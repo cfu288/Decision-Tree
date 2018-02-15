@@ -243,15 +243,14 @@ if __name__ == "__main__":
 
     # no prune, first heuristic
     treeRoot = growTree(train_df, attr_list,None,0)
-    res = testTree(treeRoot, test_df)
     if prune == "no":
         res = testTree(treeRoot, test_df)
         print("H1 NP Training {:.3f}".format(res*1))
         if toprint == "yes": printTree(treeRoot)
         
     # prune, first heuristic
-    pruneTree(treeRoot,val_df)
     if prune == "yes":
+        pruneTree(treeRoot,val_df)
         res = testTree(treeRoot, test_df)
         print("H1 P Training {:.3f}".format(res*1))
         if toprint == "yes": printTree(treeRoot)
@@ -264,8 +263,8 @@ if __name__ == "__main__":
         if toprint == "yes": printTree(treeRoot)
         
     #prune,2nd heuristic
-    pruneTree(treeRoot,val_df)
     if prune == "yes":
+        pruneTree(treeRoot,val_df)
         res = testTree(treeRoot, test_df)
         print("H2 P Training {:.3f}".format(res*1))
         if toprint == "yes": printTree(treeRoot)

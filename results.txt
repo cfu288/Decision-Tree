@@ -12,18 +12,18 @@ H2 P Training 0.952
 H2 P Validation 0.955
 H2 P Test 0.995
 D2
-H1 NP Training 0.﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿
-H1 NP Validation 0.
-H1 NP Test 0.
-H1 P Training 0.
-H1 P Validation 0.
-H1 P Test 0.
-H2 NP Training 0.﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿
-H2 NP Validation 0.
-H2 NP Test 0.
-H2 P Training 0.
-H2 P Validation 0.
-H2 P Test 0.
+H1 NP Training 0.﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿723
+H1 NP Validation 0.732
+H1 NP Test 1.000
+H1 P Training 0.753
+H1 P Validation 0.732
+H1 P Test 0.933
+H2 NP Training 0.725﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿
+H2 NP Validation 0.732
+H2 NP Test 1.000
+H2 P Training 0.752
+H2 P Validation 0.722
+H2 P Test 0.937
 
 NOTE: These numbers are the ones I got from running the program on my local machine. 
 For some reason running this code on the LDAP machines resulted in slightly higher 
