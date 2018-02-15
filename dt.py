@@ -14,6 +14,7 @@ def getArgs():
 
 #Calc Entropy
 def calE(c1,c2): #c1 is no 1's, c2 is no 0's
+    #print("NO")
     c3 = c1+c2
     res = 0
     if (c1 == 0) and (c2 == 0):
@@ -26,10 +27,13 @@ def calE(c1,c2): #c1 is no 1's, c2 is no 0's
         res = -(c1/c3*np.log2(c1/c3)) - (c2/c3*np.log2(c2/c3))
     return res
 
+#Calc Gain
 def calGain(Es, Ez, Eo , bz, bo):
     return Es - ((bz/(bz+bo))*Ez) - ((bo/(bo+bz))*Eo)
 
+#Calc Variance Impurity
 def calVarImp(c1,c2): #c1 is no 1's, c2 is no 0's
+    #print("HEY")
     res = 0
     if (c1 == 0) or (c2 == 0):
         res = 0
@@ -37,6 +41,7 @@ def calVarImp(c1,c2): #c1 is no 1's, c2 is no 0's
         res = c1/(c1+c2) * c2/(c1+c2)        
     return res
 
+#Get list of attributes from ds
 def getAtt(df):
     l = list(df.columns.values)
     l.remove('Class') # rm class attr
@@ -58,7 +63,8 @@ def printTree(root, level=0):
     if root.getRight() != None:
         printTree(root.getRight(),level+1)
 
-def growTree(examples, attributes,parent=None):
+#ID3 tree growth, returns tree at root node
+def growTree(examples, attributes,parent=None,entSelect=0):
     root = Node()
     root.setParent(parent)
     numOfOnes = examples["Class"].sum()
@@ -75,11 +81,11 @@ def growTree(examples, attributes,parent=None):
         root.setName("1") if numOfZeros < numOfOnes else root.setName("0")
         return root
     else:
-        best_attr = getBestAttr(examples, attributes)
+        best_attr = getBestAttr(examples, attributes,entSelect)
         root.setName(best_attr)
         new_attr_list = attributes[:] # new copy of list for recursion
         new_attr_list.remove(best_attr)
-
+        # process left
         left_examples_subset = examples.loc[examples[best_attr] == 0]
         left_examples_count = examples["Class"].loc[examples[best_attr] == 0].count()
         if left_examples_count == 0:
@@ -89,8 +95,8 @@ def growTree(examples, attributes,parent=None):
             root.setLeft(leaf) 
         else:
             # recurse on left
-            root.setLeft(growTree(left_examples_subset, new_attr_list,root))
-
+            root.setLeft(growTree(left_examples_subset, new_attr_list,root,entSelect))
+        # process right
         right_examples_subset = examples.loc[examples[best_attr] == 1]
         right_examples_count = examples["Class"].loc[examples[best_attr] == 1].count()
         if right_examples_count == 0:
@@ -100,14 +106,13 @@ def growTree(examples, attributes,parent=None):
             root.setRight(leaf) 
         else: 
             # recurse on right
-            root.setRight(growTree(right_examples_subset, new_attr_list,root))
-    
+            root.setRight(growTree(right_examples_subset, new_attr_list,root,entSelect))
     return root
 
-def getBestAttr(examples, attributes):
+#calculate best attribute using entropy or variance
+def getBestAttr(examples, attributes, entropySelect=0):
     numOfOnes = examples["Class"].sum()
     numOfZeros = examples["Class"].count() - numOfOnes
-    HS = calE(numOfOnes,numOfZeros) # total of current set, unrealated to target attr
     maxDict={}
     maxList=[]
     nameEquivList=[]
@@ -116,12 +121,22 @@ def getBestAttr(examples, attributes):
         taLeftOnes = examples["Class"].loc[(examples["Class"] == 1) & (examples[attr] == 0)].count() 
         taRightZeros = examples["Class"].loc[(examples["Class"] == 0) & (examples[attr] == 1)].count()
         taRightOnes = examples["Class"].loc[(examples["Class"] == 1) & (examples[attr] == 1)].count() 
-        HSvLeft = calE(taLeftOnes,taLeftZeros) 
-        HSvRight = calE(taRightOnes, taRightZeros)
-        attr_gain = calGain(HS,HSvLeft,HSvRight, taLeftOnes+taLeftZeros, taRightOnes+taRightZeros)
-        maxDict[attr] = attr_gain
-        maxList.append(attr_gain)
-        nameEquivList.append(attr)
+        if entropySelect == 0:
+            HS = calE(numOfOnes,numOfZeros) # total of current set, unrealated to target attr
+            HSvLeft = calE(taLeftOnes,taLeftZeros) 
+            HSvRight = calE(taRightOnes, taRightZeros)
+            attr_gain = calGain(HS,HSvLeft,HSvRight, taLeftOnes+taLeftZeros, taRightOnes+taRightZeros)
+            maxDict[attr] = attr_gain
+            maxList.append(attr_gain)
+            nameEquivList.append(attr)
+        else:
+            HS = calVarImp(numOfOnes,numOfZeros) # total of current set, unrealated to target attr
+            HSvLeft = calVarImp(taLeftOnes,taLeftZeros) 
+            HSvRight = calVarImp(taRightOnes, taRightZeros)
+            attr_gain = calGain(HS,HSvLeft,HSvRight, taLeftOnes+taLeftZeros, taRightOnes+taRightZeros)
+            maxDict[attr] = attr_gain
+            maxList.append(attr_gain)
+            nameEquivList.append(attr)
     # print(maxDict)  
     return nameEquivList[maxList.index(max(maxList) )]
     #return max(maxDict, key=maxDict.get)
@@ -205,10 +220,10 @@ def pruneTree(treeRoot, val_df):
     #get max percentage in dictionary 
     newMaxNode = max(nodePercentages, key=nodePercentages.get)
     # if max percentage > initial percentage
-    print("PRUNING? {} new{} old{}".format(newMaxNode.getName(),nodePercentages[newMaxNode] ,currentHigh))
+    #print("PRUNING? {} new{} old{}".format(newMaxNode.getName(),nodePercentages[newMaxNode] ,currentHigh))
     if nodePercentages[newMaxNode] >= currentHigh:
         # turn node with max percentage into leaf for realz
-        print("PRUNING? {}".format(newMaxNode.getName()))
+        #print("PRUNING? {}".format(newMaxNode.getName()))
         newMaxNode.setLeft(None)
         newMaxNode.setRight(None)
         newMaxNode.setName("0") if newMaxNode.getNumOfZeros() > newMaxNode.getNumOfOnes() else newMaxNode.setName("1")
@@ -223,74 +238,34 @@ if __name__ == "__main__":
     val_df = pd.read_csv(args.validation)
     test_df = pd.read_csv(args.test)
     attr_list = getAtt(train_df)
+    prune = args.prune
+    toprint = args.toprint
 
-    treeRoot = growTree(train_df, attr_list)
-    
+    # no prune, first heuristic
+    treeRoot = growTree(train_df, attr_list,None,0)
     res = testTree(treeRoot, test_df)
-    
-    print("Accuracy is {:.3f}%".format((res)*100))
-    
+    if prune == "no":
+        res = testTree(treeRoot, test_df)
+        print("H1 NP Training {:.3f}".format(res*1))
+        if toprint == "yes": printTree(treeRoot)
+        
+    # prune, first heuristic
     pruneTree(treeRoot,val_df)
-    
-    res = testTree(treeRoot, test_df)
-    
-    print("Pruned accuracy is {:.3f}%".format((res)*100))
+    if prune == "yes":
+        res = testTree(treeRoot, test_df)
+        print("H1 P Training {:.3f}".format(res*1))
+        if toprint == "yes": printTree(treeRoot)
 
-     
-
-    #printTree(treeRoot)
-        #print("itm: {}".format(item.getName()))
-    #res = getBestAttr(train_df,attr_list)
-    #print("max:{}".format(res)) 
-    
-    #examples = train_df
-    #best_attr = getBestAttr(examples, attr_list)
-    #print(best_attr)
-    #left_examples_subset = examples.loc[examples[best_attr] == 0]
-    
-    #newlist = attr_list[:]
-    #newlist.remove(best_attr)
-    #print(attr_list)
-    #print(newlist)
-    
-    #print(left_examples_subset)
-    #best_attr1 = getBestAttr(left_examples_subset, newlist)
-    
-    # print(left_examples_subset)
-    # sub1 = examples.loc[examples[attr_list[0]] == 0]
-    # print(sub1)
-    # sub2 = sub1.loc[sub1[attr_list[1]] == 0]
-    # print(sub2)
-    
-    # print(train_df.to_string)
-    # res_dict = {}
-    # for attr in attr_list:
-    #     c1 =  train_df[attr].sum()
-    #     c2 = train_df[attr].count() - train_df[attr].sum()
-    #     res = calE(c1,c2)
-    #     res_dict[attr] = res
-
-    #print(res_dict)
-    # GET ROWS WHERE CLASS IS 1
-    #print(train_df.loc[train_df["Class"] == 1])
-    # GET COUNT OF ROWS WHERE CLASS = 1
-    # print("SIZE = {}".format(train_df["Class"].loc[train_df["Class"] == 1].count()))
-    # testTree = Node(attr_list[0]) #XB
-    # curNode = testTree 
-    # curNode.setLeft(Node(attr_list[1])) #XC
-    # curNode.setRight(Node(attr_list[2])) #XD
-    # curNode = curNode.getLeft()
-    # curNode.setLeft(Node("0"))
-    # curNode.setRight(Node(attr_list[3])) #XE
-    # curNode = curNode.getRight()
-    # curNode.setLeft(Node("1"))
-    # curNode.setRight(Node("0"))
-    # curNode = testTree.getRight()
-    # curNode.setLeft(Node("0"))
-    # curNode.setRight(Node("1"))
-    # printTree(testTree)
-    #print(attr_list)
-    #print(res_list)
-    #print('Total Class 1: %i' % c1)
-    #print('Total Class 0: %i' % c2)
-    #print('Entropy of Class Column: %.3f' % res)
+    # no prune, 2nd  heuristic
+    treeRoot = growTree(train_df, attr_list,None,1)
+    if prune == "no":
+        res = testTree(treeRoot, test_df)
+        print("H2 NP Training {:.3f}".format(res*1))
+        if toprint == "yes": printTree(treeRoot)
+        
+    #prune,2nd heuristic
+    pruneTree(treeRoot,val_df)
+    if prune == "yes":
+        res = testTree(treeRoot, test_df)
+        print("H2 P Training {:.3f}".format(res*1))
+        if toprint == "yes": printTree(treeRoot)
