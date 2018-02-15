@@ -3,6 +3,7 @@ import numpy as np
 import argparse
 from node import Node
 
+#Parse command line arguments
 def getArgs():
     p = argparse.ArgumentParser(description='Simple decision tree implementation')
     p.add_argument('training', help='training set csv file location')
@@ -33,12 +34,11 @@ def calGain(Es, Ez, Eo , bz, bo):
 
 #Calc Variance Impurity
 def calVarImp(c1,c2): #c1 is no 1's, c2 is no 0's
-    #print("HEY")
     res = 0
     if (c1 == 0) or (c2 == 0):
         res = 0
     else:
-        res = c1/(c1+c2) * c2/(c1+c2)        
+        res = c1/(c1+c2) * c2/(c1+c2)
     return res
 
 #Get list of attributes from ds
@@ -47,6 +47,7 @@ def getAtt(df):
     l.remove('Class') # rm class attr
     return l
 
+#DFS print of tree
 def printTree(root, level=0):
     curLevel = "|" * level
     leaf = 0
@@ -57,8 +58,8 @@ def printTree(root, level=0):
         print("\n{}{} = 0 : ".format(curLevel,root.getName()),end="")
     if root.getLeft() != None:
         printTree(root.getLeft(),level+1)
-    
-    if leaf == 0: 
+
+    if leaf == 0:
         print("\n{}{} = 1 : ".format(curLevel,root.getName()),end="")
     if root.getRight() != None:
         printTree(root.getRight(),level+1)
@@ -71,16 +72,16 @@ def growTree(examples, attributes,parent=None,entSelect=0):
     numOfZeros = examples["Class"].count() - numOfOnes
     root.setNumOfOnes(numOfOnes)
     root.setNumOfZeros(numOfZeros)
-    if numOfZeros == 0:
+    if numOfZeros == 0: #Base case if no 0's in subset
         root.setName("1")
         return root
-    elif numOfOnes == 0:
+    elif numOfOnes == 0: #Base case if no 1's in subset
         root.setName("0")
         return root
-    elif len(attributes) == 0: 
+    elif len(attributes) == 0: # Base case if no attributes
         root.setName("1") if numOfZeros < numOfOnes else root.setName("0")
         return root
-    else:
+    else: # Get best attribute, recuresive call
         best_attr = getBestAttr(examples, attributes,entSelect)
         root.setName(best_attr)
         new_attr_list = attributes[:] # new copy of list for recursion
@@ -92,7 +93,7 @@ def growTree(examples, attributes,parent=None,entSelect=0):
             leaf = Node()
             leaf.setParent(root)
             leaf.setName("1") if numOfZeros < numOfOnes else leaf.setName("0")
-            root.setLeft(leaf) 
+            root.setLeft(leaf)
         else:
             # recurse on left
             root.setLeft(growTree(left_examples_subset, new_attr_list,root,entSelect))
@@ -103,8 +104,8 @@ def growTree(examples, attributes,parent=None,entSelect=0):
             leaf = Node()
             leaf.setParent(root)
             leaf.setName("1") if numOfZeros < numOfOnes else leaf.setName("0")
-            root.setRight(leaf) 
-        else: 
+            root.setRight(leaf)
+        else:
             # recurse on right
             root.setRight(growTree(right_examples_subset, new_attr_list,root,entSelect))
     return root
@@ -117,30 +118,32 @@ def getBestAttr(examples, attributes, entropySelect=0):
     maxList=[]
     nameEquivList=[]
     for attr in attributes:
+        # count 1's and 0's on left and right branches for heuristic calculations
         taLeftZeros = examples["Class"].loc[(examples["Class"] == 0) & (examples[attr] == 0)].count()
-        taLeftOnes = examples["Class"].loc[(examples["Class"] == 1) & (examples[attr] == 0)].count() 
+        taLeftOnes = examples["Class"].loc[(examples["Class"] == 1) & (examples[attr] == 0)].count()
         taRightZeros = examples["Class"].loc[(examples["Class"] == 0) & (examples[attr] == 1)].count()
-        taRightOnes = examples["Class"].loc[(examples["Class"] == 1) & (examples[attr] == 1)].count() 
-        if entropySelect == 0:
+        taRightOnes = examples["Class"].loc[(examples["Class"] == 1) & (examples[attr] == 1)].count()
+        if entropySelect == 0: #use entropy
             HS = calE(numOfOnes,numOfZeros) # total of current set, unrealated to target attr
-            HSvLeft = calE(taLeftOnes,taLeftZeros) 
+            HSvLeft = calE(taLeftOnes,taLeftZeros)
             HSvRight = calE(taRightOnes, taRightZeros)
             attr_gain = calGain(HS,HSvLeft,HSvRight, taLeftOnes+taLeftZeros, taRightOnes+taRightZeros)
             maxDict[attr] = attr_gain
             maxList.append(attr_gain)
             nameEquivList.append(attr)
-        else:
+        else: # use Variance imp
             HS = calVarImp(numOfOnes,numOfZeros) # total of current set, unrealated to target attr
-            HSvLeft = calVarImp(taLeftOnes,taLeftZeros) 
+            HSvLeft = calVarImp(taLeftOnes,taLeftZeros)
             HSvRight = calVarImp(taRightOnes, taRightZeros)
             attr_gain = calGain(HS,HSvLeft,HSvRight, taLeftOnes+taLeftZeros, taRightOnes+taRightZeros)
             maxDict[attr] = attr_gain
             maxList.append(attr_gain)
             nameEquivList.append(attr)
-    # print(maxDict)  
+    # print(maxDict)
     return nameEquivList[maxList.index(max(maxList) )]
     #return max(maxDict, key=maxDict.get)
 
+# Run test on tree given a dataset and tree
 def testTree(treeRoot, testData):
     currentRows = 0
     numberCorrect = 0
@@ -150,6 +153,7 @@ def testTree(treeRoot, testData):
         numberCorrect += testTreeHelper(treeRoot, row)
     return numberCorrect/currentRows
 
+# Recursive helper
 def testTreeHelper(treeRoot, row):
     if treeRoot == None:
         print("ERR, none node when testing")
@@ -171,19 +175,22 @@ def testTreeHelper(treeRoot, row):
         else:
             print("ERR, path does not exist")
 
+# Helper function that gets set of nodes above leaf nodes
 def getLeafSet(treeRoot):
     leafSet = set()
     getLeafSetHelper(treeRoot,leafSet)
     return leafSet
 
+# Helper function that checks if node is one level above leaf nodes
 def checkIfLastLay(node):
     if ((node.getLeft().getName() == "0") or (node.getLeft().getName() == "1")) and ((node.getRight().getName() == "0") or (node.getRight().getName() == "1")):
         return 1
     return 0
 
+# Recursive helper function to traverse paths
 def getLeafSetHelper(treeRoot,leafSet):
     if (treeRoot.getLeft() == None) and (treeRoot.getRight() == None):
-        if (treeRoot.getParent() != None): 
+        if (treeRoot.getParent() != None):
             if (checkIfLastLay(treeRoot.getParent())):
                 leafSet.add(treeRoot.getParent())
         return
@@ -191,6 +198,7 @@ def getLeafSetHelper(treeRoot,leafSet):
         getLeafSetHelper(treeRoot.getLeft(), leafSet)
         getLeafSetHelper(treeRoot.getRight(), leafSet)
 
+#Prune tree function covered in project description
 def pruneTree(treeRoot, val_df):
     # test Validation set on tree - save initial percentage
     currentHigh = testTree(treeRoot, val_df)
@@ -217,7 +225,7 @@ def pruneTree(treeRoot, val_df):
         node.setLeft(leftPtr)
         node.setRight(rightPtr)
         node.setName(oldName)
-    #get max percentage in dictionary 
+    #get max percentage in dictionary
     newMaxNode = max(nodePercentages, key=nodePercentages.get)
     # if max percentage > initial percentage
     #print("PRUNING? {} new{} old{}".format(newMaxNode.getName(),nodePercentages[newMaxNode] ,currentHigh))
@@ -230,8 +238,9 @@ def pruneTree(treeRoot, val_df):
         # recurse on new pruned tree
         pruneTree(treeRoot,val_df)
     # else stop, further pruneing wont improve percentage
-    return 
+    return
 
+#main function
 if __name__ == "__main__":
     args = getArgs()
     train_df = pd.read_csv(args.training)
@@ -247,7 +256,7 @@ if __name__ == "__main__":
         res = testTree(treeRoot, test_df)
         print("H1 NP Training {:.3f}".format(res*1))
         if toprint == "yes": printTree(treeRoot)
-        
+
     # prune, first heuristic
     if prune == "yes":
         pruneTree(treeRoot,val_df)
@@ -261,7 +270,7 @@ if __name__ == "__main__":
         res = testTree(treeRoot, test_df)
         print("H2 NP Training {:.3f}".format(res*1))
         if toprint == "yes": printTree(treeRoot)
-        
+
     #prune,2nd heuristic
     if prune == "yes":
         pruneTree(treeRoot,val_df)
