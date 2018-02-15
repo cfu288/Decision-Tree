@@ -6,6 +6,20 @@ class Node(object):
         self.rightBranch = rb
         self.parent = parent
         self.nodeName = name
+        self.numOfOnes = 0
+        self.numOfZeros = 0
+
+    def getNumOfOnes(self):
+        return self.numOfOnes
+
+    def getNumOfZeros(self):
+        return self.numOfZeros
+
+    def setNumOfOnes(self, x):
+        self.numOfOnes = x
+
+    def setNumOfZeros(self, x):
+        self.numOfZeros = x
 
     def getVal(self):
         return self.val

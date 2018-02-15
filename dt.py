@@ -58,10 +58,13 @@ def printTree(root, level=0):
     if root.getRight() != None:
         printTree(root.getRight(),level+1)
 
-def growTree(examples, attributes):
+def growTree(examples, attributes,parent=None):
     root = Node()
+    root.setParent(parent)
     numOfOnes = examples["Class"].sum()
     numOfZeros = examples["Class"].count() - numOfOnes
+    root.setNumOfOnes(numOfOnes)
+    root.setNumOfZeros(numOfZeros)
     if numOfZeros == 0:
         root.setName("1")
         return root
@@ -86,7 +89,7 @@ def growTree(examples, attributes):
             root.setLeft(leaf) 
         else:
             # recurse on left
-            root.setLeft(growTree(left_examples_subset, new_attr_list))
+            root.setLeft(growTree(left_examples_subset, new_attr_list,root))
 
         right_examples_subset = examples.loc[examples[best_attr] == 1]
         right_examples_count = examples["Class"].loc[examples[best_attr] == 1].count()
@@ -97,7 +100,7 @@ def growTree(examples, attributes):
             root.setRight(leaf) 
         else: 
             # recurse on right
-            root.setRight(growTree(right_examples_subset, new_attr_list))
+            root.setRight(growTree(right_examples_subset, new_attr_list,root))
     
     return root
 
@@ -153,6 +156,67 @@ def testTreeHelper(treeRoot, row):
         else:
             print("ERR, path does not exist")
 
+def getLeafSet(treeRoot):
+    leafSet = set()
+    getLeafSetHelper(treeRoot,leafSet)
+    return leafSet
+
+def checkIfLastLay(node):
+    if ((node.getLeft().getName() == "0") or (node.getLeft().getName() == "1")) and ((node.getRight().getName() == "0") or (node.getRight().getName() == "1")):
+        return 1
+    return 0
+
+def getLeafSetHelper(treeRoot,leafSet):
+    if (treeRoot.getLeft() == None) and (treeRoot.getRight() == None):
+        if (treeRoot.getParent() != None): 
+            if (checkIfLastLay(treeRoot.getParent())):
+                leafSet.add(treeRoot.getParent())
+        return
+    else:
+        getLeafSetHelper(treeRoot.getLeft(), leafSet)
+        getLeafSetHelper(treeRoot.getRight(), leafSet)
+
+def pruneTree(treeRoot, val_df):
+    # test Validation set on tree - save initial percentage
+    currentHigh = testTree(treeRoot, val_df)
+    # get set of nodes above leaf nodes
+    set = getLeafSet(treeRoot)
+    # set up empty dict -> for node:percentage
+    nodePercentages = {}
+    # for node in leaf node set
+    for node in set:
+        #save left branch pointer
+        leftPtr = node.getLeft()
+        #save right branch pointer
+        rightPtr = node.getRight()
+        #turn branches into None - node is a leaf
+        node.setLeft(None)
+        node.setRight(None)
+        # need to set name of node to new 0 or 1 based on percent
+        oldName = node.getName()
+        node.setName("0") if node.getNumOfZeros() > node.getNumOfOnes() else node.setName("1")
+        #Test validation set on new tree - add node:percentage to dict
+        newHigh = testTree(treeRoot, val_df)
+        nodePercentages[node] = newHigh
+        #revert left and right branches
+        node.setLeft(leftPtr)
+        node.setRight(rightPtr)
+        node.setName(oldName)
+    #get max percentage in dictionary 
+    newMaxNode = max(nodePercentages, key=nodePercentages.get)
+    # if max percentage > initial percentage
+    print("PRUNING? {} new{} old{}".format(newMaxNode.getName(),nodePercentages[newMaxNode] ,currentHigh))
+    if nodePercentages[newMaxNode] >= currentHigh:
+        # turn node with max percentage into leaf for realz
+        print("PRUNING? {}".format(newMaxNode.getName()))
+        newMaxNode.setLeft(None)
+        newMaxNode.setRight(None)
+        newMaxNode.setName("0") if newMaxNode.getNumOfZeros() > newMaxNode.getNumOfOnes() else newMaxNode.setName("1")
+        # recurse on new pruned tree
+        pruneTree(treeRoot,val_df)
+    # else stop, further pruneing wont improve percentage
+    return 
+
 if __name__ == "__main__":
     args = getArgs()
     train_df = pd.read_csv(args.training)
@@ -161,12 +225,21 @@ if __name__ == "__main__":
     attr_list = getAtt(train_df)
 
     treeRoot = growTree(train_df, attr_list)
-    #printTree(treeRoot)
+    
     res = testTree(treeRoot, test_df)
-    #for row in test_df.itertuples():
-    #    print(row.Class)
+    
     print("Accuracy is {:.3f}%".format((res)*100))
     
+    pruneTree(treeRoot,val_df)
+    
+    res = testTree(treeRoot, test_df)
+    
+    print("Pruned accuracy is {:.3f}%".format((res)*100))
+
+     
+
+    #printTree(treeRoot)
+        #print("itm: {}".format(item.getName()))
     #res = getBestAttr(train_df,attr_list)
     #print("max:{}".format(res)) 
     
