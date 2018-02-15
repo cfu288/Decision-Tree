@@ -1,0 +1,38 @@
+D1
+H1 NP Training 0.﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿957
+H1 NP Validation 0.952
+H1 NP Test 1.000
+H1 P Training 0.950
+H1 P Validation 0.952
+H1 P Test 0.995
+H2 NP Training 0.﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿953
+H2 NP Validation 0.955
+H2 NP Test 1.000
+H2 P Training 0.952
+H2 P Validation 0.955
+H2 P Test 0.995
+D2
+H1 NP Training 0.﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿
+H1 NP Validation 0.
+H1 NP Test 0.
+H1 P Training 0.
+H1 P Validation 0.
+H1 P Test 0.
+H2 NP Training 0.﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿
+H2 NP Validation 0.
+H2 NP Test 0.
+H2 P Training 0.
+H2 P Validation 0.
+H2 P Test 0.
+
+NOTE: These numbers are the ones I got from running the program on my local machine. 
+For some reason running this code on the LDAP machines resulted in slightly higher 
+values than the ones I got here.
+
+I have done this assignment completely on my own. I have not copied it, nor have 
+I given my solution to anyone else. I understand that if I am involved in plagiarism 
+or cheating I will have to sign an official form that I have cheated and that this 
+form will be stored in my official university record. I also understand that I will 
+receive a grade of 0 for the involved assignment for my first offense and that I will 
+receive a grade of “F” for the course for any additional offense.
+
